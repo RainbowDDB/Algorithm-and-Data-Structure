@@ -15,7 +15,7 @@ class SelectionSort {
     // Float[] arr2 = { 1.1f, 2.2f, 4.4f, 3.3f };
     // SelectionSort.sort(arr2);
     // for (int i = 0; i < arr2.length; i++) {
-    //   System.out.println(arr2[i]);
+    // System.out.println(arr2[i]);
     // }
 
     // Student[] arr3 = new Student[3];
@@ -24,7 +24,7 @@ class SelectionSort {
     // arr3[2] = new Student("dd", 20);
     // SelectionSort.sort(arr3);
     // for (int i = 0; i < arr3.length; i++) {
-    //   System.out.println(arr3[i]);
+    // System.out.println(arr3[i]);
     // }
   }
 

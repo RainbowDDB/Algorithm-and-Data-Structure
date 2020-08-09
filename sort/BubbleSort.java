@@ -5,7 +5,7 @@ class BubbleSort {
   }
 
   public static void main(String[] args) {
-    Integer[] arr = { 1,2,3,4,5,8,6 };
+    Integer[] arr = { 1, 2, 3, 4, 5, 8, 6 };
     BubbleSort.sort(arr);
     SortTestHelper.print(arr);
   }

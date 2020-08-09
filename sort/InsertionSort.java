@@ -8,7 +8,7 @@ class InsertionSort {
 
   public static void main(String[] args) {
     Integer[] arr = SortTestHelper.generateRandomArray(100, 0, 200);
-    InsertionSort.sort(arr, 0, arr.length-1);
+    InsertionSort.sort(arr, 0, arr.length - 1);
     SortTestHelper.print(arr);
 
     // Integer[] arr = { 2, 3, 6, 8, 1, 5 };
@@ -39,18 +39,18 @@ class InsertionSort {
   // }
 
   // 优化版重载[l..r]
-  public static void sort(Comparable[] arr,int l,int r) {
+  public static void sort(Comparable[] arr, int l, int r) {
     // int n = arr.length;
     // for (int i = 0; i < n; i++) {
-    //   Comparable e = arr[i];
-    //   int j = i;
-    //   for (; j > 0 && arr[j - 1].compareTo(e) > 0; j--)
-    //     arr[j] = arr[j - 1];
-    //   arr[j] = e;
+    // Comparable e = arr[i];
+    // int j = i;
+    // for (; j > 0 && arr[j - 1].compareTo(e) > 0; j--)
+    // arr[j] = arr[j - 1];
+    // arr[j] = e;
     // }
 
     int length = arr.length;
-    for (int i = l+1; i < r+1; i++) {
+    for (int i = l + 1; i < r + 1; i++) {
       Comparable temp = arr[i];
       int j;
       // 找到arr[i]的正确位置

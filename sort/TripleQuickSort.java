@@ -25,7 +25,7 @@ class TripleQuickSort {
   }
 
   private static void sort(Comparable[] arr, int l, int r) {
-    if (r-l<=15){
+    if (r - l <= 15) {
       InsertionSort.sort(arr, l, r);
       return;
     }

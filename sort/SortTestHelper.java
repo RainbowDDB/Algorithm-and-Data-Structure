@@ -4,7 +4,7 @@ import java.lang.reflect.Method;
 import java.util.Date;
 import java.util.Random;
 
-class SortTestHelper {
+public class SortTestHelper {
 
   // private final Student s = new Student("g", 1);
 
@@ -12,13 +12,12 @@ class SortTestHelper {
     // s = new Student("h", 2);
   }
 
-  public static void main(String[] args){
-    
+  public static void main(String[] args) {
+
   }
-  
+
   public static Integer[] generateRandomArray(int n, int rangeL, int rangeR) {
     assert rangeL <= rangeR;
-    
 
     Integer[] arr = new Integer[n];
     Random rand = new Random(new Date().getTime());

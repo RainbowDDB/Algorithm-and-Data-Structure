@@ -1,26 +1,21 @@
 package sort;
 
-import java.util.Iterator;
+import java.util.Random;
 
-class Test implements Iterable<Integer> {
+import heap.IndexMapHeap;
+import heap.MaxHeap;
 
-  @Override
-  public Iterator<Integer> iterator() {
-    // TODO Auto-generated method stub
-    return new Iterator<Integer>() {
+class Test {
 
-      @Override
-      public boolean hasNext() {
-        // TODO Auto-generated method stub
-        return false;
-      }
+  public static void main(String[] args) {
+    IndexMapHeap<Integer> h = new IndexMapHeap<>(100);
+    Random r = new Random();
+    for (int i = 0; i < 50; i++) {
+      h.insert(i, r.nextInt(100));
+    }
 
-      @Override
-      public Integer next() {
-        // TODO Auto-generated method stub
-        return null;
-      }
-    };
+    for (int i = 0; i < h.size(); i++) {
+      System.out.println(h.extractMaxIndex());
+    }
   }
-
 }

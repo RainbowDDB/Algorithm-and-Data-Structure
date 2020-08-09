@@ -21,7 +21,7 @@ class QuickSort {
 
   private static void sort(Comparable[] arr, int l, int r) {
     // if (l >= r)
-    //   return;
+    // return;
     if (r - l <= 15) {
       InsertionSort.sort(arr, l, r);
       return;
@@ -36,11 +36,11 @@ class QuickSort {
     int j = l;
     // 随机取第一个数，非常重要的优化！
     Random rand = new Random(new Date().getTime());
-    swap(arr, l, rand.nextInt(r-l)+l);
+    swap(arr, l, rand.nextInt(r - l) + l);
     Comparable v = arr[l];
     for (int i = l + 1; i <= r; i++) {
       if (arr[i].compareTo(v) < 0) {
-        swap(arr, i, j+1);
+        swap(arr, i, j + 1);
         j++;
       }
     }
