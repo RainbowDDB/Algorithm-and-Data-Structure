@@ -72,7 +72,7 @@ public class HeapSort {
 
     heapSort(h);
     for (int i = 0; i < h.length; i++) {
-      System.out.println(h[i]);
+      System.out.print(h[i] + " ");
     }
 
     int n = 1000000;

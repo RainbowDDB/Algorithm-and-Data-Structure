@@ -43,8 +43,7 @@ public class MaxHeap<Item extends Comparable> {
 
   // 取出最顶元素
   public Item extractMax() {
-    if (count == 0)
-      return null;
+    assert (count < 1);
     Item i = data[1];
 
     swap(1, count);
@@ -89,7 +88,8 @@ public class MaxHeap<Item extends Comparable> {
       maxHeap.insert(i);
     }
 
-    System.out.println((int) maxHeap.extractMax() + "--" + maxHeap.size());
-
+    for (int i = 0; i < maxHeap.size(); i++) {
+      System.out.print(maxHeap.extractMax() + " ");
+    }
   }
 }
