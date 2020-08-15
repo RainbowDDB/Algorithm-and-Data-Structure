@@ -19,14 +19,6 @@ public class BinarySearchTree<Key extends Comparable<Key>, Value> {
       this.right = this.left = null;
       this.nodeNum = 1;
     }
-
-    Node(Node node) {
-      this.key = node.key;
-      this.value = node.value;
-      this.right = node.right;
-      this.left = node.left;
-      this.count = node.count;
-    }
   }
 
   private Node root;
@@ -257,6 +249,7 @@ public class BinarySearchTree<Key extends Comparable<Key>, Value> {
     }
     Node l = node.left;
     Node r = node.right;
+
     node.nodeNum = (l == null ? 0 : l.nodeNum) + (r == null ? 0 : r.count) + 1;
     return node;
   }
