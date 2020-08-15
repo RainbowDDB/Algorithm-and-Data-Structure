@@ -16,6 +16,13 @@ public class BinarySearchTree<Key extends Comparable<Key>, Value> {
       this.value = value;
       this.right = this.left = null;
     }
+
+    Node(Node node) {
+      this.key = node.key;
+      this.value = node.value;
+      this.right = node.right;
+      this.left = node.left;
+    }
   }
 
   private Node root;
@@ -87,6 +94,35 @@ public class BinarySearchTree<Key extends Comparable<Key>, Value> {
       return;
 
     root = removeMax(root);
+  }
+
+  public void remove(Key key) {
+    root = remove(root, key);
+  }
+
+  private Node remove(Node node, Key key) {
+    if (node == null)
+      return null;
+
+    if (key.compareTo(node.key) == 0) {
+      if (node.left == null) {
+        count--;
+        return node.right;
+      } else if (node.right == null) {
+        count--;
+        return node.left;
+      }
+      // 可以找右子树最小值 或者 左子树最大值
+      Node n = minimum(node.right);
+      n.right = removeMin(node.right);
+      n.left = node.left;
+      return n;
+    } else if (key.compareTo(node.key) > 0) {
+      node.right = remove(node.right, key);
+    } else {
+      node.left = remove(node.left, key);
+    }
+    return node;
   }
 
   private Node removeMax(Node node) {
