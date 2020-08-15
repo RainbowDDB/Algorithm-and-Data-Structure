@@ -10,11 +10,14 @@ public class BinarySearchTree<Key extends Comparable<Key>, Value> {
     Value value;
     Node left;
     Node right;
+    // 当前节点下面有多少个节点
+    int count;
 
     Node(Key key, Value value) {
       this.key = key;
       this.value = value;
       this.right = this.left = null;
+      this.count = 1;
     }
 
     Node(Node node) {
@@ -22,6 +25,7 @@ public class BinarySearchTree<Key extends Comparable<Key>, Value> {
       this.value = node.value;
       this.right = node.right;
       this.left = node.left;
+      this.count = node.count;
     }
   }
 
@@ -100,6 +104,44 @@ public class BinarySearchTree<Key extends Comparable<Key>, Value> {
     root = remove(root, key);
   }
 
+  public int rank(Key key) {
+    return rank(root, key, 0);
+  }
+
+  public Key select(int rank) {
+    if (rank > count)
+      return null;
+    return select(root, rank, 0);
+  }
+
+  private Key select(Node node, int rank, int count) {
+    Node left = node.left;
+    int r = count + (left == null ? 1 : left.count + 1);
+    if (rank < r) {
+      return select(node.left, rank, count);
+    } else if (rank > r) {
+      return select(node.right, rank, r);
+    } else {
+      return node.key;
+    }
+  }
+
+  private int rank(Node node, Key key, int count) {
+    if (node == null)
+      return -1;
+
+    if (key.compareTo(node.key) > 0) {
+      count += node.left == null ? 1 : node.left.count + 1;
+      return rank(node.right, key, count);
+    } else if (key.compareTo(node.key) < 0) {
+      return rank(node.left, key, count);
+    } else {
+      // ==
+      Node left = node.left;
+      return count + (left == null ? 1 : left.count + 1);
+    }
+  }
+
   private Node remove(Node node, Key key) {
     if (node == null)
       return null;
@@ -173,7 +215,7 @@ public class BinarySearchTree<Key extends Comparable<Key>, Value> {
       return;
 
     inOrder(node.left);
-    System.out.print(node.key + " ");
+    System.out.print(node.key + "->" + node.count + " ");
     inOrder(node.right);
   }
 
@@ -213,6 +255,9 @@ public class BinarySearchTree<Key extends Comparable<Key>, Value> {
     } else {
       node.right = insert(node.right, k, v);
     }
+    Node l = node.left;
+    Node r = node.right;
+    node.count = (l == null ? 0 : l.count) + (r == null ? 0 : r.count) + 1;
     return node;
   }
 

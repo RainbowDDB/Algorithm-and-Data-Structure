@@ -72,7 +72,7 @@
 解决查找问题，基础为 二分查找法(find,ceil,floor三种方法)
 
 1. 查找，插入，删除均为O(logn)，动态维护数据
-2. **min**、**max**、**floor**、**ceil**、**rank**、**select**、**delete** 很容易实现
+2. **min**、**max**、**successor后继**、**predecessor前驱**、**floor小于最接近值**、**ceil大于最接近值**、**rank**、**select**、**remove** 很容易实现
 3. 实现——查找表（字典KV）
 4. 深度优先遍历：前序、中序(从小到大的key排序)、后序
   
