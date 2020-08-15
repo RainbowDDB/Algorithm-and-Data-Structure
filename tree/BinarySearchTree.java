@@ -25,7 +25,7 @@ public class BinarySearchTree<Key extends Comparable<Key>, Value> {
       this.value = node.value;
       this.right = node.right;
       this.left = node.left;
-      this.nodeNum = node.nodeNum;
+      this.count = node.count;
     }
   }
 
