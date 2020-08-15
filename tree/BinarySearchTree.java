@@ -11,13 +11,13 @@ public class BinarySearchTree<Key extends Comparable<Key>, Value> {
     Node left;
     Node right;
     // 当前节点下面有多少个节点
-    int count;
+    int nodeNum;
 
     Node(Key key, Value value) {
       this.key = key;
       this.value = value;
       this.right = this.left = null;
-      this.count = 1;
+      this.nodeNum = 1;
     }
 
     Node(Node node) {
@@ -25,7 +25,7 @@ public class BinarySearchTree<Key extends Comparable<Key>, Value> {
       this.value = node.value;
       this.right = node.right;
       this.left = node.left;
-      this.count = node.count;
+      this.nodeNum = node.nodeNum;
     }
   }
 
@@ -116,7 +116,7 @@ public class BinarySearchTree<Key extends Comparable<Key>, Value> {
 
   private Key select(Node node, int rank, int count) {
     Node left = node.left;
-    int r = count + (left == null ? 1 : left.count + 1);
+    int r = count + (left == null ? 1 : left.nodeNum + 1);
     if (rank < r) {
       return select(node.left, rank, count);
     } else if (rank > r) {
@@ -131,14 +131,14 @@ public class BinarySearchTree<Key extends Comparable<Key>, Value> {
       return -1;
 
     if (key.compareTo(node.key) > 0) {
-      count += node.left == null ? 1 : node.left.count + 1;
+      count += node.left == null ? 1 : node.left.nodeNum + 1;
       return rank(node.right, key, count);
     } else if (key.compareTo(node.key) < 0) {
       return rank(node.left, key, count);
     } else {
       // ==
       Node left = node.left;
-      return count + (left == null ? 1 : left.count + 1);
+      return count + (left == null ? 1 : left.nodeNum + 1);
     }
   }
 
@@ -215,7 +215,7 @@ public class BinarySearchTree<Key extends Comparable<Key>, Value> {
       return;
 
     inOrder(node.left);
-    System.out.print(node.key + "->" + node.count + " ");
+    System.out.print(node.key + "->" + node.nodeNum + " ");
     inOrder(node.right);
   }
 
@@ -257,7 +257,7 @@ public class BinarySearchTree<Key extends Comparable<Key>, Value> {
     }
     Node l = node.left;
     Node r = node.right;
-    node.count = (l == null ? 0 : l.count) + (r == null ? 0 : r.count) + 1;
+    node.nodeNum = (l == null ? 0 : l.nodeNum) + (r == null ? 0 : r.count) + 1;
     return node;
   }
 
