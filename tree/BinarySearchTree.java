@@ -250,7 +250,7 @@ public class BinarySearchTree<Key extends Comparable<Key>, Value> {
     Node l = node.left;
     Node r = node.right;
 
-    node.nodeNum = (l == null ? 0 : l.nodeNum) + (r == null ? 0 : r.count) + 1;
+    node.nodeNum = (l == null ? 0 : l.nodeNum) + (r == null ? 0 : r.nodeNum) + 1;
     return node;
   }
 
