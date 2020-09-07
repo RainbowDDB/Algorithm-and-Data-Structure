@@ -338,6 +338,83 @@ Builder 和 build 对象
 
   > 主要运用在数字签名、文件完整性验证以及口令加密等方面
 
+### IO 与 NIO
+
+#### 类型
+
+1. 磁盘操作 `File`
+
+   File 获取文件，但不能进行文件的读写操作，同时创建 File 实例并不会在磁盘上创建一个文件
+
+   RandomAccessFile 可以进行读写文件且支持随机访问文件的任意位置（通过文件字节指针）
+
+2. 字节操作 `InputStream`/`OutputStream` （字节流）
+3. 字符操作 `Reader`/`Writer`（字符流）
+4. 对象操作 `Serializable`
+5. 网络操作 `Socket`
+6. 新的输入输出 `NIO`
+
+#### 字节流与字符流
+
+所有的文件传输时都是以字节方式进行的，包括图片，而字符只会在内存中形成
+
+字节流直接操作文件本身，能够处理包括音频视频图片各种类型的文件；而字符流需要用到内存缓冲区，仅能处理文本文件，需要刷新缓冲区或者关闭流文件以输出数据
+
+> 字符流与字节流之间的转化通过**适配器模式**进行。同时建议：finally 中关闭流文件，防止泄露
+
+#### 节点流与处理流
+
+程序直接操作目标设备的称为节点流，而处理流是一个间接的流类用于调用节点流
+
+缓冲流：Buffered 处理流，为 IO 提供内存缓冲区，提高 IO 效率，同时可以进行流上的特殊操作。设计模式为**装饰者模式**
+
+建议用 `BufferedReader` 包装所有其 `read()` 操作可能开销很高的 `Reader`（如 `FileReader` 和 `InputStreamReader`)，如：
+
+```java
+   BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+```
+
+#### 对象流与序列化
+
+`ObjectOutputStream` 与 `ObjectInputStream`
+
+**对象的 IO 传递**是通过序列化与反序列化实现的，`Serializable接口`
+
+> **默认序列化**的对象仅针对非静态变量，非 `static` 且非 `transient`
+
+- `readObject(in)` 序列化 与 `writeObject(out)`反序列化
+- `serialVersionUID` 类版本对照
+
+- 默认序列化的问题
+
+1. 过程是迭代的，当对象过于复杂的时候方法栈可能溢出
+2. 暴露私有域，消耗的时间和空间更多
+
+- 自定义序列化的思路
+
+  扁平化处理，基本变量通过默认序列化实现，而自定义的 Bean 对象通过自定义序列化来写入流中，注意需要判断数据的有效性
+
+1. `readResolve` 与 单例模式
+2. 序列化代理 与 `writeReplace`
+
+#### NIO
+
+IO 面向流、阻塞；NIO 面向缓冲区、通过线程和通道发送请求非阻塞
+
+- 核心
+
+1. Channel 双向通道（IO Stream 为单向）
+2. Buffer
+3. Selector 运行单线程处理多个 Channel
+
+> 线程通常将非阻塞 IO 的空闲时间用于在其它通道上执行 IO 操作，所以**一个单独的线程现在可以管理多个输入和输出通道**（Channel）
+
+- 工作原理
+
+1. Selector 在专门的线程处理所有的 IO 事件，负责分发（分为服务端和客户端）
+2. 事件驱动机制，事件到才触发，而不是一直同步监视
+3. 线程通信：`wait、notify` 减少线程间无意义的切换
+
 ### 多线程问题
 
 #### synchronized 与 lock
@@ -359,6 +436,14 @@ Builder 和 build 对象
    某个线程在等待锁的释放的时候需要中断，可中断/可不中断
 
    能够分开处理一些 wait/notify，Lock 里面的 Condition 就能控制通知哪个线程
+
+#### 乐观锁与悲观锁
+
+- 悲观锁：Synchronized、Lock，总是认为自己操作数据的时候别人也会操作
+
+- 乐观锁：多用于多读的情景，认为自己操作时别人不会操作，只是在最后判断一下是否被别人来操作（版本号机制或 CAS 算法）
+
+- CAS 算法 比较与交换
 
 ---
 
@@ -437,19 +522,20 @@ Builder 和 build 对象
 
 ### Service 服务
 
-在托管进程的主线程进行，由系统进程托管，一般服务内开线程进行耗时操作(官方库：IntentService**异步会自动停止**的服务)
+在托管进程的主线程进行，由系统进程托管，一般服务内开线程进行耗时操作
 
 #### 重要回调
 
 1. onBind()/onUnbind() 返回 IBinder 进行绑定/解绑服务
 2. onCreate() 初始化创建一次
 3. int onStartCommand() 返回三种 service 的运行策略，启动服务
+   > `STICKY`（系统内存不够被 kill 掉后，过一段时间空闲时会进行重建，**不传递 intent**）、`NOT_STICKY`（被 kill 掉不会重建）、`REDELIVER_INTENT`（kill 掉后重建，且**传递 intent**）
 4. onDestroy() 销毁
 
 #### 状态
 
-1. 启动状态 startService()
-2. 绑定状态 bindService() 转换问题？(启动服务稍微优先)
+1. 启动状态 `startService(intent)`
+2. 绑定状态 `bindService(intent,serviceConn,flag)` 转换问题？(启动服务稍微优先)
 
    > IBinder 实现（仅自己进程）、Messenger（串行 IPC）、AIDL（并行 IPC）三种方式
 
@@ -465,7 +551,13 @@ Builder 和 build 对象
 2. android:priority
 3. onStartCommand 提升为前台服务级别
 
----
+#### IntentService
+
+一个异步的，会自动停止的服务，继承自 Service
+
+会创建独立的 worker 线程来处理所有的 `Intent` 请求，处理 `onHandleIntent` 方法，处理完成后会 `stopSelf()`
+
+> `HandlerThread` + `Handler` 构建成了一个带有消息循环机制的异步任务处理机制
 
 ### IPC 跨进程通信
 
@@ -624,7 +716,7 @@ Activity、Service、Application 三种
 
 #### 事件分发
 
-应用层从 `Activity->Window->View`
+应用层从 `Activity->Window->DecorView->View`
 
 `ViewGroup事件分发` 责任链模式
 
@@ -646,7 +738,7 @@ Activity、Service、Application 三种
 
   -> `View`的事件分发开始
 
-  注：先处理`ACTION_DOWN`之后是`UP & MOVE`
+  注：先处理`ACTION_DOWN`之后是`UP & MOVE`(必须有 `onTouchEvent` 返回 **true** 后才会进行处理)
 
 `View事件分发`(已经没有子 View 的 View)
 
@@ -821,44 +913,46 @@ Activity、Service、Application 三种
 
 ---
 
-### Handler
+### 多线程通信
+
+#### Handler
 
 跨线程通信
 
 > 设计模式：Message 的享元模式
 
-#### 四个对象
+- 四个对象
 
 1. Handler 发送和处理消息
 2. Looper 从消息队列中取出消息，并且发送给 Handler
 3. MessageQueue 存储消息，内部由**单链表**实现
 4. Message 发送的消息本身，携带数据
 
-#### 基本工作流程
+- 基本工作流程
 
-`Looper.prepare()` 初始化循环 Looper(当前线程的)以及 MessageQueue
+  `Looper.prepare()` 初始化循环 Looper(当前线程的)以及 MessageQueue
 
-> 一个线程只能有一个 Looper 和一个消息队列，但是 Handler 是不限的，他们会公用一个 Looper 和消息队列，线程存储 Looper 的主要逻辑是通过`ThreadLocal`实现的
+  > 一个线程只能有一个 Looper 和一个消息队列，但是 Handler 是不限的，他们会公用一个 Looper 和消息队列，线程存储 Looper 的主要逻辑是通过`ThreadLocal`实现的
 
--> `new Handler()` 通过`Looper.myLooper()`初始化 Looper
+  -> `new Handler()` 通过`Looper.myLooper()`初始化 Looper
 
-> Handler 对象在哪个线程下构建（Handler 的构造函数在哪个线程下调用）
+  > Handler 对象在哪个线程下构建（Handler 的构造函数在哪个线程下调用）
 
--> `Looper.loop()` 进入循环消息队列的读取，直到消息队列为空
+  -> `Looper.loop()` 进入循环消息队列的读取，直到消息队列为空
 
-> 如果在子线程中初始化会为 null，需要`Looper.prepare()/loop()`初始化；在主线程中会在`ActivityThread`中自动创建一个`Looper`
+  > 如果在子线程中初始化会为 null，需要`Looper.prepare()/loop()`初始化；在主线程中会在`ActivityThread`中自动创建一个`Looper`
 
--> (Handler) `sendMessage` 发送消息
+  -> (Handler) `sendMessage` 发送消息
 
--> (Handler/MessageQueue) `enqueueMessage` 将消息放入消息队列，并设置`msg.target`
+  -> (Handler/MessageQueue) `enqueueMessage` 将消息放入消息队列，并设置`msg.target`
 
--> (Looper 循环/MessageQueue) `queue.next()` 取出消息
+  -> (Looper 循环/MessageQueue) `queue.next()` 取出消息
 
--> (Looper 循环) `msg.target.dispatchMessage` 传回 Handler 处理消息
+  -> (Looper 循环) `msg.target.dispatchMessage` 传回 Handler 处理消息
 
--> (Handler) `handleMessage` 处理消息
+  -> (Handler) `handleMessage` 处理消息
 
-#### 其他小问题
+- 其他小问题
 
 1. `handler` 中的 `post` 和 `sendMessage` 有什么区别？
 
@@ -879,6 +973,48 @@ Activity、Service、Application 三种
      > **一个线程可以有多个 ThreadLocal 来存储多个变量**，一个线程所存储的多个变量全部存储到一个`ThreadMap`(`Values`)中
 
    - 在 `Looper.prepare()` 中，通过 set 方法将 `Thread` 和 `Looper` **绑定**起来
+
+#### AsyncTask
+
+无需使用 Handler+Thread 的复杂组合，采用线程池的缓存线程+复用线程，避免了创建和损毁的开销
+
+`AsyncTask<Params,Progress,Result>`
+
+两个线程池：任务队列线程池(`SerialExecutor`)、执行线程池(`THREAD_POOL_EXECUTOR`)
+
+一个 Handler(`InternalHandler`)
+
+- 流程
+
+  -> `AsyncTask()`
+
+  1）新建一个工作线程`WorkerRunnable`，内部进行 `doInBackground`，finally 中回调 `postResult`
+
+  > 在 `postResult` 中通过 `InternalHandler` 发送一个 Message，接收后进行 `onProgressUpdate` 或 `onPostExecute`
+
+  2）新建一个 `FutureTask(Worker)`，在 `Worker` 执行完成后，复查任务调用，将未被调用的任务结果通过 `InternalHandler` 传递给**主线程**
+
+  -> `execute(params)` 手动触发异步任务 WorkerRunnable
+
+  调用 `SerialRunnable` 的 `execute` 方法(`sync`)，内部维护一个双向任务队列，如果当前无任务执行，则从从队列中取出一个执行(任务的执行由 `THREAD_POOL_EXECUTOR` 进行)
+
+  -> `onPreExecute()` 用于进行线程的初始化操作
+
+  -> `doInBackground(params)` **后台线程**处理，进行耗时操作
+
+  -> `publishProgress()` -> `onProgressUpdate(progress)`
+
+  在主线程中显示任务进度（如果 Progress 为`Void`则无）
+
+  -> `onPostExecute(result)` 接收执行结果，显示到 UI 组件
+
+  -> `onCanceled()` 任务取消
+
+- 注意点
+
+1. `AsyncTask` 不与任何组件绑定生命周期流程，所以需要手动取消(`onDestroy` 中)
+2. 内存泄漏问题，内部非静态类会持有外部类(`Activity`)的引用导致内存泄漏，需要声明为静态
+3. 线程执行结果丢失，当 `Activity` **重新创建**时，`AsyncTask` 会失去引用，所以需要重新恢复
 
 ---
 
@@ -1018,52 +1154,54 @@ Activity、Service、Application 三种
 6. StringBuilder 拼接
 7. 内存策略优化：合理设计 cache 大小，少用 static 对象，优化布局层次、珍惜 Service 资源，Proguard 对代码进行压缩、优化和混淆
 
-#### Bitmap 大图片处理（下采样）
+#### Bitmap 大图片处理
 
 1. 获取图片的宽高 `BitmapFactory.Options`
-2. 按照压缩大小得到图片压缩比 `inSampleSize` 传入 `Options`（2的幂）
+2. 按照压缩大小得到图片压缩比 `inSampleSize` 传入 `Options`（2 的幂）
 3. `BitmapFactory.decodeResource`
 
    > 内部核心方法 decodeStream()
 
 ### Android 设计框架
 
-1. MVC
+#### MVC
 
-   - `Model`(数据处理的操作，如**网络、数据库**)
-   - `View`(`XML`)
-   - `Controller`(`Activity`和`Fragment`)
+- `Model`(数据处理的操作，如**网络、数据库**)
+- `View`(`XML`)
+- `Controller`(`Activity`和`Fragment`)
 
-   > 缺陷：`Controller`业务逻辑繁琐，臃肿
+> 缺陷：`Controller`业务逻辑繁琐，臃肿
 
-2. MVP
+#### MVP
 
-   - `Model` 数据操作
-   - `Presenter` 核心业务逻辑集中在此处，取消了 `View` 和 `Model` 间的耦合，作为 `View` 和 `Model` 沟通的媒介
-   - `View` 由 `Activity`/`Fragment`/某个 `View` 担任
+- `Model` 数据操作
+- `Presenter` 核心业务逻辑集中在此处，取消了 `View` 和 `Model` 间的耦合，作为 `View` 和 `Model` 沟通的媒介
+- `View` 由 `Activity`/`Fragment`/某个 `View` 担任
 
-     在 `View` 层中，有一个 `Presenter` 的成员变量，需要实现一个接口将 `View` 层的业务操作转交给 `Presenter` 层进行操作
+  在 `View` 层中，有一个 `Presenter` 的成员变量，需要实现一个接口将 `View` 层的业务操作转交给 `Presenter` 层进行操作
 
-   - 使用建议
+- 使用建议
 
-   1. 接口规范化
-   2. 第三方插件生成（`Dagger`）
-   3. 简单的页面不使用 MVP
-   4. 根据复杂程度选择
+1. 接口规范化
+2. 第三方插件生成（`Dagger`）
+3. 简单的页面不使用 MVP
+4. 根据复杂程度选择
 
-3. MVVM
+#### MVVM
 
-   - `Model`
-   - `View`
-   - `ViewModel` 其中 `View` 和 `Model` 数据双向绑定
+- `Model`
+- `View`
+- `ViewModel` 其中 `View` 和 `Model` 数据双向绑定
 
-   > `Google` 自带 `DataBinding` 框架，但是还不完善
+> `Google` 自带 `DataBinding` 框架，但是还不完善
 
 ---
 
-### SharedPreference
+### 数据持久化
 
-#### 整体流程
+#### SharedPreference
+
+- 整体流程
 
 -> 在 `ContextImpl` 中获取 `SharedPreference` 对象，线程安全
 
@@ -1082,7 +1220,7 @@ Activity、Service、Application 三种
 3. 读取文件，赋值 map
 4. 加载数据成功，赋值 mMap、时间戳和文件大小(用于多线程校验)，最后 notifyAll()
 
-#### 读取操作
+- 读取操作
 
 1. get 线程安全
 
@@ -1102,14 +1240,110 @@ Activity、Service、Application 三种
 
 - `apply` 同样地，将 `mModified` **同步**到内存的 `mMap` 中(`commitToMemory`)，将写入磁盘的方法放入异步线程中
 
-#### 其他
+- 其他
 
 1. `SharedPreference` 的线程安全，但不是进程安全
 2. 首次 `getSharedPreference` 会开辟新线程异步加载，**同时阻塞所有 set/get 方法**，之后调用时直接从缓存中获取
-3. get 操作均在内存中 mMap 上进行，同时 commit/apply 都是**_同步到内存 mMap_** 的，只是写入磁盘的方式不同
-4. MODE_MULTI_PROCESS 多进程模式是通过时间戳和文件大小判断的，并不能保证多进程数据实时同步
+3. get 操作均在内存中 mMap 上进行，同时 `commit/apply` 都是**同步到内存 mMap** 的，只是写入磁盘的方式不同
+4. `MODE_MULTI_PROCESS` 多进程模式是通过时间戳和文件大小判断的，并不能保证多进程数据实时同步
 
 > **一定不要在多进程环境中使用** `SharedPreference`，频繁的读写会导致损坏错误；而且**SP 文件不能过大**
+
+#### SQLite
+
+1. 索引 —— B 树索引
+
+   聚集索引（键值的逻辑顺序）与非聚集索引（非顺序序）
+
+   优缺点：
+
+   1. 加快检索速度，加速表与表之间的连接，二分搜索
+   2. 减少查询中分组和排序的时间
+   3. 索引占用空间，且需要动态的维护
+
+2. 在 SQLite 中使用索引
+
+- SQLite 中不支持聚集索引，Android 默认需要一个 `_id` 字段，也就扮演了一个索引的角色，所以不要在声明了`INTEGER PRIMARY KEY` 的主键上声明索引
+
+- 索引的生效条件——前导列
+
+  在 `WHERE` 子句中，前导列**必须使用等于或者 IN** 操作，**最右边的列可以使用不等式**，这样索引才可以完全生效
+
+- 覆盖索引 `O(logn)` 与 非覆盖索引 `O(2logn)`
+
+### 动画
+
+#### 动画类型
+
+1. 视图动画：补间动画、逐帧动画
+2. 属性动画
+
+#### 补间动画 Tween
+
+通过确定开始和结束，中间过程由系统补全
+
+- 类型：平移、缩放、旋转、透明度变化
+
+- 应用场景
+
+1. 标准 `View` 视图的基础动画
+2. `Activity/Fragment` 的页面切换效果，如淡入淡出、左右滑动等
+
+- 使用
+
+1. 核心类 `Animation`
+2. 在 `res/anim` 静态创建或者 Java 代码中动态创建
+3. `loadAnimation`获取 xml 动画 / 动态创建 `Animation` -> `startAnimation`
+4. Activity/Fragment 页面的切换动画效果
+
+- 高级用法
+
+1. 组合动画 `<set/>` / `AnimationSet`
+2. 监听动画 `setAnimationListener` 也可使用 `AnimatorListenerAdapter`
+
+#### 逐帧动画 Frame
+
+按帧播放动画，每一帧为一张图片，容易 OOM
+
+- 不可作用于 View 组件的属性（如颜色、背景等）
+- 用于较为复杂的个性化动画效果
+
+- 用法 `AnimationDrawable`
+
+#### 属性动画 Property
+
+- 作用于任意 Java 对象，不再局限于视图 View
+- 通过在一定间隔内，不断的改变属性值来实现动画效果（个人感觉像是补间动画的自定义版本）
+
+- 使用
+
+  定义初始值、结束值
+
+  设置变化逻辑(估值器、插值器)
+
+  通过 `ValueAnimator`(手动) 和 `ObjectAnimator`(自动) 进行赋值（`addUpdateListener`）
+
+  刷新视图，`View.requestLayout()`
+
+  1. `ValueAnimator` `<animator/>`
+
+     ofInt，整型过渡；ofFloat，浮点型过渡；ofObject，对象过渡
+
+  2. `ObjectAnimator` `<objectAnimator/>`
+
+  自定义属性 property(get/set 方法) `ofFloat(Object, property, float... value)`
+
+- 插值器 `Interpolator` 确定了过渡变化的模式（如匀速、加速等）
+
+  主要用于非线性运动的动画效果
+
+- 估值器 `TypeEvaluator` 初始值到结束值的过渡逻辑，即**协同插值器**确定变化的具体值
+
+### 最新技术
+
+#### 断点续传
+
+#### 热更新
 
 ## 项目相关
 
@@ -1212,7 +1446,23 @@ Activity、Service、Application 三种
 5. 策略模式 `CacheStrategy`
 6. 享元模式 `Dispatcher` 线程调度者，实现对象复用
 
+#### Okio
+
+1. 核心基础类 ByteString 与 Buffer
+2. Source 与 BufferSource 输入流
+3. Sink 与 BufferSink 输出流
+
+- 特点
+
+  超时机制：Socket 的异步超时、普通流的同步超时保证稳定
+
+  时间换空间，Segment 双向循环链表和 ByteString 不可变对象
+
+  方便：Source 和 Sink，支持 Socket，实现均在 Buffer 中
+
 ### Retrofit
+
+### Gson
 
 ### Glide
 
@@ -1249,9 +1499,9 @@ Activity、Service、Application 三种
 
 #### 异步加载
 
-线程池：GlideExecutor
+线程池：`GlideExecutor`
 
-加载源文件、硬盘缓存和动画三个线程池
+**加载源文件**、**硬盘缓存**和**动画**三个线程池
 
 #### 切换线程
 
@@ -1263,13 +1513,17 @@ Activity、Service、Application 三种
 
 三级缓存机制：活跃资源、内存、硬盘三级缓存
 
+当图片要加载时，**先从 active 中取，然后再从 cache 中取，还取不到就是重新加载**
+
 1. `DiskCacheStrategy` 缓存策略
 
 2. 通过**键值对**的方式进行缓存
 
 - `ActiveResource` 是一个弱引用的 Map
 
-  > 当图片加载时，会放入 `ActiveResource`，当图片的生命周期结束时，放入 `MemoryCache`，也就是内存缓存中
+  当图片加载时，会放入 `ActiveResource`，当图片的生命周期结束时，放入 `MemoryCache`，也就是内存缓存中
+
+  > 之所以需要 `activeResources`，它是一个随时可能被回收的资源，`memory` 的强引用频繁读写可能造成内存激增频繁 `GC`，而造成内存抖动。
 
 - 内存缓存 `LruCache`
 
@@ -1281,7 +1535,7 @@ Activity、Service、Application 三种
 
 - ImageView 的内存泄漏问题
 
-  在 Glide 中，用 `WeakReference` 修饰 `ImageView` 解决了此问题
+  在 `Glide` 中，用 `WeakReference` 修饰 `ImageView` 解决了此问题
 
   同时为了保证加载任务的及时取消，Glide 也进行了生命周期的管理(`with(context)`)
 
@@ -1297,7 +1551,64 @@ Activity、Service、Application 三种
 
 1. 软引用 `SoftReference`
 2. `Glide` 中使用 `onLowMemory` 回调防止 OOM
-3. 图片压缩方法
+3. 图片压缩方法，存储格式
+   > `ALPHA_8`（每个像素 1 字节，无颜色信息）、`ARGB8888`（ARGB 分别 1 字节）、`ARGB4444`（ARGB 分别 4 位，半字节）、`RGB565`（分别 565 位，共两字节，无透明度信息）
 4. 基于 `Bitmap` 的存储位置
 
    压缩图片，将像素数据不放入`Java堆`中，转而放入`native堆`中（`Android 8.0` 以上的 Bitmap）
+
+### EventBus
+
+发布订阅模式（观察者模式)
+
+#### 三大角色
+
+1. `Event` 发布的事件
+2. `Subscriber` 订阅者，处理者
+3. `Publisher` 事件发布者
+
+#### 线程模型
+
+1. `POSTING` 默认，发布者和处理者在同一个线程
+2. `Main` 处理者在主线程
+3. `Background` 处理者在后台线程
+4. `Async` 无论如何处理者都将新建一个线程执行
+5. `MainOrdered` 按顺序执行，也是在主线程
+
+#### 流程
+
+-> `EventBus.getDefault()` 获取单例，双重校验锁
+
+-> `register(context)` 注册，获取所有订阅的方法 `SubscribeMethod`
+
+> 先通过缓存，再通过反射查找类的订阅方法 `findUsingReflectionInSingleClass()`
+
+-> `subscribe(subscriber,method)` 将方法订阅，得到下面两个 map
+
+`subscriptionsByEventType` 为 `Map<EventType,Subscription>` 发送事件、释放资源时要用
+
+`typesBySubscriber` 为 `Map<Subscriber,List<EventType>>` 释放资源时要用
+
+> 和注册同理，`unregister`就是要将两个 map 的缓存清掉
+
+PS：最后部分有**粘性事件的处理和分发**
+
+-> `post(event)` 发送消息
+
+将 event 放入消息队列，循环出队列处理
+
+-> `postSingleEvent()` -> ...通过 `subscriptionsByEventType` 找到对应的订阅者 `subscription`
+
+-> `postToSubscription()` 通过线程模式判断在哪个线程执行事件的处理
+
+将事件入队等待 `Handler` 处理(`threadPoster`) 或者 直接反射处理(`invokeMethod`)
+
+#### 粘性事件
+
+和普通事件不同的是，我们可以先发送事件，之后再订阅注册事件，这样也是可以**在注册的时候接收的**
+
+`postSticky()` 将事件放入`粘性事件的 Map` 中，如果此事件不粘性（或者已经被注册了），内部也是直接调用 `post()` 进行处理的
+
+#### 索引优化
+
+在**项目编译时**使用**注解处理器**保存事件订阅信息的索引类，这样在注册时可以直接查找取出进行最后的注册，避免了反射造成的性能损耗
