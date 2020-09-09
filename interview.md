@@ -72,11 +72,11 @@
 
   1. http/0.9 简陋，仅有 get，仅支持 html
 
-  2. http/1.0 多支持了 post 和 head，非持久连接，content-type 支持的更多内容格式，支持 cache
+  2. http/1.0 多支持了 post 和 head，非持久连接，content-type 支持的更多内容格式，**支持 cache**
 
-  3. http/1.1 持久连接，支持了 Put、Delete 等请求方式，管道机制：支持多个请求同时发送
+  3. http/1.1 **持久连接**，支持了 Put、Delete 等请求方式，**管道机制**：**支持多个请求同时发送**
 
-  4. http/2.0 双工，服务端支持同时处理多个请求，解决队头拥塞的问题，多路复用，将多个流 `stream` 放入一个连接 `connection` 中
+  4. http/2.0 **双工**，服务端支持同时处理多个请求，**解决队头拥塞的问题**，多路复用，将多个流 `stream` 放入一个连接 `connection` 中
 
   5. http/3.0 `QUIC 协议`(基于 `UDP`)
 
@@ -202,7 +202,9 @@
 
 - 类加载时机
 
-  创建类的对象，初始化、引用类的静态变量或调用静态方法、反射
+  **创建类的对象，初始化、引用类的静态变量或调用静态方法、反射**
+
+  > 注意：静态 Final 对象在编译器生成，调用它不会进行类加载
 
 - 类加载机制
 
@@ -352,7 +354,7 @@ Builder 和 build 对象
 3. 字符操作 `Reader`/`Writer`（字符流）
 4. 对象操作 `Serializable`
 5. 网络操作 `Socket`
-6. 新的输入输出 `NIO`
+6. 新的输入输出 `NIO` 非阻塞 IO
 
 #### 字节流与字符流
 
@@ -502,9 +504,9 @@ IO 面向流、阻塞；NIO 面向缓冲区、通过线程和通道发送请求�
 
   内部是一个双向链表的结构，记录我们 add/replace 的碎片
 
-1. add、hide、show 不会走生命周期方法
-2. replace 会重新走一遍生命周期的创建
-3. addToBackStack() 回退栈方法
+1. `add、hide、show` 不会走生命周期方法，而是走 `onHiddenChanged` 方法
+2. `replace` 会重新走一遍生命周期的创建
+3. `addToBackStack()` 回退栈方法
 
 - 通信问题
 
@@ -543,8 +545,6 @@ IO 面向流、阻塞；NIO 面向缓冲区、通过线程和通道发送请求�
 
 `startForeground` 和 `stopForeground`
 
-#### Android 5.0 以上的隐式启动问题
-
 #### 优先级
 
 1. onStartCommand 的返回值 START_STICKY
@@ -555,7 +555,7 @@ IO 面向流、阻塞；NIO 面向缓冲区、通过线程和通道发送请求�
 
 一个异步的，会自动停止的服务，继承自 Service
 
-会创建独立的 worker 线程来处理所有的 `Intent` 请求，处理 `onHandleIntent` 方法，处理完成后会 `stopSelf()`
+会创建独立的 **worker 线程**来处理所有的 `Intent` 请求，处理 `onHandleIntent` 方法，处理完成后会 `stopSelf()`
 
 > `HandlerThread` + `Handler` 构建成了一个带有消息循环机制的异步任务处理机制
 
@@ -597,7 +597,7 @@ IO 面向流、阻塞；NIO 面向缓冲区、通过线程和通道发送请求�
 
 #### Binder（AIDL） 代理模式
 
-> 基于 C-S 通信模式。跨进程通信需要在序列化和反序列化数据中不断操作，虽然跨进程中数据是多份的，但是他们底层的 Binder 是同一个对象
+> 基于 C-S 通信模式。跨进程通信需要在**序列化和反序列化**数据中不断操作，虽然跨进程中数据是多份的，但是他们底层的 Binder 是同一个对象
 
 在 Android 开发中 Binder 主要使用在 Service 中，包括 AIDL 和 Messenger
 
@@ -697,18 +697,32 @@ Activity、Service、Application 三种
 1. 广播接收器运行在主线程，不能进行耗时操作
 2. 静态注册 Manifest(常驻广播) 与 动态注册(onResume/onPause)
 
+> 广播可在应用程序之间传输数据，所以是可以基于多进程的通信，底层仍然是 `Binder` 实现的
+
 #### 广播发送与类型
 
-1. 普通广播
+1. 普通广播 sendBroadcast
 2. 系统广播
 3. 有序广播 sendOrderedBroadcast()，按照 priority 以及动态与否排序
-4. 应用内广播
+4. **应用内广播 Local**
 
    exported:false、权限验证、指定包名
 
-   `LocalBroadcastManager`
+   `LocalBroadcastManager` 本地广播，内部由 `Handler` 实现
 
 5. 粘性广播 5.0 以上已失效
+
+#### 实现机制
+
+-> 自定义 `BroadcastReceiver`，重写 `onReceive` 方法
+
+-> 通过 `Binder` 向 `AMS` 注册
+
+-> 广播发送者向 `AMS` 发送广播
+
+-> `AMS` 查找符合条件的接收器，发送到指定 Receiver 的消息队列中
+
+-> 执行 `onReceive` 方法
 
 ---
 
@@ -778,7 +792,7 @@ Activity、Service、Application 三种
 
 2. Measure 计算这个 View 的实际大小(`performMeasure()`)，`measure方法`最终的测量有`View`的回调`onMeasure`实现
 
-3. Layout 用来确定 View 在父容器的布局位置(`performLayout`)，`layout方法`最终的测量有`View`的回调`onLayout`实现（注：View 中为空实现，在 ViewGroup 中有实现）
+3. Layout 用来确定 View 在父容器的布局位置(`performLayout`)，`layout方法`最终的测量由`View`的回调`onLayout`实现（注：View 中为空实现，在 ViewGroup 中有实现）
 
 4. Draw 用来将这个控件绘制出来，从`performDraw`开始，调用每个 View 的`draw(canvas)`方法
    > **绘制流程**：背景(`drawBackground`)->`Canvas层`->内容(`onDraw`)->子 View(`dispatchDraw()`)->显示效果&恢复图层(`onDrawForeground`)->各种装饰物
@@ -792,6 +806,12 @@ Activity、Service、Application 三种
 2. 在 Activity 中获取 View 宽高的方式
 
    `view.post`/`ViewTreeObserver`/`onWindorFocusChanged`
+
+3. onMeasure、onLayout、onDraw
+
+   `onMeasure` 和 `onLayout` 分别是获取**子元素大小和位置的**
+
+   `onDraw` 是绘制**自身内容**的，**包含**在 `draw` 方法中
 
 #### RecyclerView 和 ListView
 
@@ -861,6 +881,12 @@ Activity、Service、Application 三种
      `onCreateViewHolder` 减少 View 层级，尽量避免使用`ConstraintLayout`
 
      `onBindViewHolder` 减少`ImageView`渲染时间，非 UI 显示操作后移，**添加延迟任务、图片请求加载延迟；快速滑动时，加入 Scroll 监听，停止加载数据**
+
+- ListView
+
+1. 通过自身重写 `getView()` 实现复用，仅有两层缓存机制（可见的和离开屏幕的）
+2. 样式问题：只能实现垂直线性排列的布局；无增删动画、分割线仅支持 `android:divider`
+3. 数据量小，应用场景少、样式简单
 
 #### 自定义 View 相关 模板方法模式
 
@@ -964,7 +990,7 @@ Activity、Service、Application 三种
 
 3. `ThreadLocal` 的原理
 
-   目的：在多线程程序中,同一个线程在某个时间段只能处理一个任务.我们希望在这个时间段内,任务的某些变量能够和处理它的线程进行绑定,**在任务需要使用这个变量的时候,这个变量能够方便的从线程中取出来**
+   目的：在多线程程序中，同一个线程在某个时间段只能处理一个任务，我们希望在这个时间段内，任务的某些变量能够和处理它的线程进行绑定，**在任务需要使用这个变量的时候,这个变量能够方便的从线程中取出来**
 
    > 此对象建议为`static`，保证不会产生很多`Entry`
 
@@ -1013,10 +1039,24 @@ Activity、Service、Application 三种
 - 注意点
 
 1. `AsyncTask` 不与任何组件绑定生命周期流程，所以需要手动取消(`onDestroy` 中)
+
 2. 内存泄漏问题，内部非静态类会持有外部类(`Activity`)的引用导致内存泄漏，需要声明为静态
+
 3. 线程执行结果丢失，当 `Activity` **重新创建**时，`AsyncTask` 会失去引用，所以需要重新恢复
 
----
+#### HandlerThread
+
+- 优点：无需进行新建 `Thread+Handler` 的方式实现异步通信
+
+- 通过 `HandlerThread` 新建工作线程，并注册此工作线程的 `Handler` 即可进行操作了
+
+- 注意：**内存泄漏**问题 / **按序处理消息**
+
+- 主要使用场景
+
+  1. 向子线程传递消息，即构建`子线程的 Handler`（不需要进行 `Looper.prepare/loop`）
+
+  2. 按序发送消息
 
 ### Framework&启动流程
 
@@ -1099,7 +1139,56 @@ Activity、Service、Application 三种
 
   发送启动消息`LAUNCH_ACTIVITY`到消息队列
 
----
+#### AMS
+
+负责系统中`四大组件的启动、切换、调度`以及`应用程序间的管理和调度工作`
+
+启动
+
+1. 由 `SystemServer` 的 ServerThread 创建
+
+2. 将 `SystemServer` 进程交由 `AMS` 管理
+
+3. 将 `SettingsProvider` 放到 `AMS` 中运行
+
+4. 内部保存 `WMS`
+
+5. 准备完成后，调用 `systemReady` 初始化其他服务
+
+`AMS.main()`
+返回一个 Context 对象（上下文环境）
+
+1. 启动 `ActivityThread`，应用程序 APP 的主线程，**其职责是调度运行在此线程的四大组件**
+
+2. 获取并操作 `Application` 的资源、类
+
+3. 获取用来管理 `Activity` 启动和调度的核心类
+
+4. `startRunning()`
+
+构造函数
+
+1. 创建`广播队列`(前台和后台队列)、`Service`、`Provider`
+
+2. 建立 `data/system` 的一些信息，配置信息初始化
+
+3. 启动线程，负责检测 `CPU` 使用情况
+
+`ActivityThread.systemMain()`
+
+此方法为 `SystemServer 进程`搭建一个和应用进程一样的 `Android 运行环境`
+
+> ActivityThread 可以把 Android 系统提供的组件之间的交互接口机制等扩展到 SystemServer 中使用
+
+1. `thread.attach(true)`
+
+   初始化 `ContextImpl`、`App`、`Instrumentation`（创建组件、系统与组件的交互工具类）、设置 `ViewRootImpl` 的监听回调
+
+2. `getSystemContext()` 初始化资源信息
+
+**_待写。。。太恶心了_**
+
+#### WMS
 
 ### Android 性能优化
 
@@ -1111,12 +1200,12 @@ Activity、Service、Application 三种
 
 1. 主线程中执行耗时操作——需开辟新线程
 2. 其他程序进程占用 CPU 导致本进程无法获得 CPU 时间片(大量的数据读写)
-3. 线程持有锁，等待超时，join、sleep、wait 等
+3. 线程持有锁，等待超时，`join、sleep、wait` 等
 4. service 忙无响应(应避免在 Service 中进行耗时操作，除非开辟线程)
 
 - 定位与分析
 
-  Logcat 日志或/data/anr/traces.txt 文件(通过 AMS 写入)
+  `Logcat` 日志或`/data/anr/traces.txt` 文件(通过 `AMS` 写入)
 
   log 分析：原因、进程 id、进程包名、CPU 使用率/IO wait
 
@@ -1147,11 +1236,17 @@ Activity、Service、Application 三种
 - 如何避免
 
 1. 使用更加轻量的数据结构，如 `ArrayMap`(**用数组存储 Map，key 和 value 都在一个数组，且通过缓存机制，避免了频繁的创建数组带来的内存消耗)**/`SparseArray`(**延迟删除机制，gc 一次性压缩空间**)
-2. 避免使用 Enum 枚举
-3. 减少 Bitmap 内存占用，decode 方式以及压缩比
+
+2. 避免使用 `Enum` 枚举
+
+3. 减少 `Bitmap` 内存占用，**decode 方式以及压缩比**
+
 4. 使用更小的图片
-5. 避免在 onDraw 中进行对象的创建，因为 onDraw 需要频繁调用，会导致内存抖动
-6. StringBuilder 拼接
+
+5. 避免在 onDraw 中进行对象的创建，因为 onDraw 需要频繁调用，会导致**内存抖动**
+
+6. `StringBuilder` 拼接
+
 7. 内存策略优化：合理设计 cache 大小，少用 static 对象，优化布局层次、珍惜 Service 资源，Proguard 对代码进行压缩、优化和混淆
 
 #### Bitmap 大图片处理
@@ -1461,6 +1556,71 @@ Activity、Service、Application 三种
   方便：Source 和 Sink，支持 Socket，实现均在 Buffer 中
 
 ### Retrofit
+
+仅负责网络请求接口的封装，具体的请求仍由 Okhttp 实现
+
+用注解和接口的形式简化网络请求的一系列配置
+
+可扩展性：`请求适配器 CallAdapter` 和 `数据解析器 Converter` 的扩展
+
+#### 初始化流程
+
+1. 初始化 配置网络请求参数
+
+   > 建造者模式、工厂模式、装饰者模式、策略模式、代理模式
+
+   `Retrofit.builder().xxx.build().create(RestService.class)`
+
+   `create()`方法：
+
+   -> **动态代理** 我们自定义的调用接口类 (`InvocationHandler` 为代理实现类) 返回一个代理对象
+
+   -> 加载 `serviceMethod` 对象，并缓存起来
+
+   同时内部创建此方法的**请求适配器和解析器**（**工厂模式、策略模式**）
+
+   -> 创建 `OkhttpCall` 对象，由`Okhttp3.Call` 封装
+
+   -> `serviceMethod.callAdapter.adapt(OkhttpCall)` 根据 okhttpCall 对象**适配返回 call 或者其他类型**，同时内部用 `ExecutorCallbackCall` 包装（**装饰者模式**）
+
+2. 网络请求执行与适配
+
+   执行器 `OkHttpCall`、适配器 `CallAdapter`
+
+3. Okhttp 底层请求数据
+
+   **类似 Okhttp 的流程，具体见上**
+
+   -> `(ExecutorCallbackCall)call.enqueue(callback)` 或 `execute()`
+
+   -> `(OkhttpCall) call.enqueue` 或 `execute`
+
+   -> `createRawCall()` 返回 Okhttp 的 call 对象
+
+   1. `(OkhttpCall)serviceMethod.toRequest()`
+
+   2. `callFactory.newCall(request).execute()/enqueue()`
+
+   -> `okhttp` 通过 call 开始请求...略
+
+4. 数据解析 Converter
+5. 回调 Executor
+
+#### 执行器与适配器
+
+默认执行器 `OkhttpCall`
+
+适配器 `CallAdapter` 将默认的执行器转换成不同平台的执行器（如 `RxJava 执行器`）
+
+#### 解析器 Converter
+
+> 工厂模式，数据转换器工厂
+
+Gson、Scalars、etc
+
+#### 回调执行器 Executor
+
+默认 Executor 是获取了主线程的 handler 然后向主线程发送消息的
 
 ### Gson
 
