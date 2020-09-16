@@ -942,11 +942,11 @@ Activity、Service、Application 三种
 
   注：先处理`ACTION_DOWN`之后是`UP & MOVE`(必须有 `onTouchEvent` 返回 **true** 后才会进行处理)
 
-`View事件分发`(已经没有子 View 的 View)
+`View事件分发`(已经没有子 View 的 View) 按顺序执行，如果返回 `true` 不再传递
 
 1. dispatchTouchEvent()
-2. onTouchEvent()
-3. onTouch()
+2. onTouch()
+3. onTouchEvent()
 4. performClick() / onClick() / onLongClick()
 
 > 至此，xy 方向的滑动冲突的解决也就很简单了(如`ViewPager`和`ListView`)
@@ -971,8 +971,26 @@ Activity、Service、Application 三种
 3. `Measure` 测量(大小)
 
    ViewGroup 开始，遍历子 View，测量出大小保存，之后根据结果测量自己，over
+
 4. `Layout` 布局(位置)
+
+   类似于 measure 过程，注意单一 View 是不会计算子 View 的位置的，因为没有子 View
+
 5. `Draw` 绘制
+
+   **绘制流程**
+
+   -> `draw()` 绘制自身 View
+
+   -> 自身背景 `drawBackground`
+
+   -> 自身内容 `onDraw(canvas)`
+
+   -> 子 View `dispatchDraw()`
+
+   -> 显示效果&恢复图层 `onDrawForeground`
+
+   -> 各种装饰物 `onDrawScrollBars`
 
 - 关键类/方法
 
@@ -990,16 +1008,25 @@ Activity、Service、Application 三种
 
 2. Measure 计算这个 View 的实际大小(`performMeasure()`)，`measure方法`最终的测量有`View`的回调`onMeasure`实现
 
-3. Layout 用来确定 View 在父容器的布局位置(`performLayout`)，`layout方法`最终的测量由`View`的回调`onLayout`实现（注：View 中为空实现，在 ViewGroup 中有实现）
+3. Layout 用来确定 View 在父容器的布局位置(`performLayout`)，`layout方法`最终的测量由`View`的回调`onLayout`实现
+
+   `layout()` 中测量`自身 View` 的位置，内部的 `onLayout` 方法中是测量`子 View` 的位置
+
+   > 单一 View 是没有子 View 的，故其 onLayout 为空实现，而自定义的 ViewGroup 中**必须复写 onLayout**
 
 4. Draw 用来将这个控件绘制出来，从`performDraw`开始，调用每个 View 的`draw(canvas)`方法
-   > **绘制流程**：背景(`drawBackground`)->`Canvas层`->内容(`onDraw`)->子 View(`dispatchDraw()`)->显示效果&恢复图层(`onDrawForeground`)->各种装饰物
+
+   > 无论是自定义 View 还是 ViewGroup，都**需要复写**
 
 - 其他的东西
 
-1. getMeasureWidth 和 getWidth 的区别与使用？
+1. `getMeasureWidth` 和 `getWidth` 的区别与使用？
 
-   只有在测量过程和布局计算时，使用 getMeasureWidth；在 Layout 之后才使用 getWidth 获取
+   getMeasureWidth 是测量的宽高，而 getWidth 是实际最终的宽高
+
+   > 一般情况下，非人为设置时，两者的宽高总是相同的
+
+   只有在测量过程和布局计算时，使用 getMeasureWidth；在 **Layout 之后** 才使用 getWidth 获取
 
 2. 在 Activity 中获取 View 宽高的方式
 
@@ -1103,6 +1130,8 @@ Activity、Service、Application 三种
 3. 直接继承 View
 
    可复写`onDraw`、`onMeasure`
+
+   > 注意：此 `View` 的 `padding` 和 `wrap_content` 属性将失效，请分别在 `onDraw`(主动获取 padding 值加入计算) 和 `onMeasure`(添加宽高默认值) 中做处理
 
 4. 直接继承 ViewGroup
 
