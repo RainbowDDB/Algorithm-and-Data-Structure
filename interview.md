@@ -36,7 +36,7 @@
 
 2. FIFO 命名管道
 
-   可以在无关进程间交换数据，速度很慢
+   可以在无关进程间交换数据 n.0，速度很慢
 
 3. 消息队列
 
@@ -129,6 +129,51 @@
 4. 分离的指令空间 I 与 数据空间 D
 
 5. 共享——共享页面-共享库-内存映射文件
+
+### 编译与程序执行
+
+#### 编译原理
+
+- 过程
+
+1. **预处理**——将 cpp 转化为 i 文件
+
+   宏定义、头文件引入、条件编译、特殊符号等做处理
+
+2. **编译与优化**——将 i 文件转化为 s 文件（汇编语言）
+3. **汇编**——将 s 文件转化为 o 文件（汇编转机器语言）
+4. **链接**——将 o 文件转化为目标文件，如可执行文件、共享目标文件
+
+   静态与动态链接，链接其他库中的引入对象等
+
+   > 在 gcc 指令中，可通过-E/-S/-c 分别生成预处理后的代码(.i)、汇编代码(.s)、目标代码(.o)
+
+#### 内存模型结构
+
+由下到上
+
+1. 正文段（**运行代码**）
+2. 只读数据段 rodata
+3. 已初始化数据段 data（全局变量与静态变量）
+
+   > c++中已经不再区分 bss 和 data 了，它们共享一块内存区域
+
+4. `BSS` 段，未初始化数据（全局变量与静态变量）
+5. `堆`，向上增长，线程动态分配的内存段，存一些对象和数组对象
+
+   > Java 中通过 gc 自动回收堆中内存，而 C++中需要手动回收，new/delete 等
+
+6. `栈`，向下增长，存放局部临时变量（**非 static 的**）、函数调用栈（**后进先出**），由编译器自动分配释放等
+
+   > **全局变量会放在堆中**，无论是引用还是基本类型都如此（所以基本类型的变量不一定在栈中）。同时在 Java 中**没有静态的局部变量**
+
+堆与栈的区别？
+
+1. 管理方式：栈自动管理，堆手动管理（`c++`）
+2. 空间大小：栈小，堆大
+3. 碎片问题：栈由编译器自动管理，先进后出，无碎片问题；而堆需要清理时，会产生内存片段的不连续
+4. 分配方式：堆动态分配；栈可以动态分配 alloca，也可以静态分配（局部变量）
+5. 效率：栈高
 
 ## 计网
 
@@ -243,15 +288,17 @@
 
 2. 可达性分析算法(引用链) `GC Roots`，不可达则进行最终判定
 
+   > 可作为 GC Root 的对象有：通过系统类加载器和根加载器加载的类对象、激活状态的线程、栈中的对象
+
 3. 最终判定：如果此对象没有复写 `finalize` 方法或者已经被调用过，则判定死亡，直接回收；否则放入 `F-Queue` 中等待执行 `finalize` 方法，之后 `GC` 会在 `F-Queue` 中进行**第二次标记**
 
 #### 类加载
 
 - 类加载器：通过一个类的全限定类名获得这个类的二进制自己流叫做类加载器
 
-1. 根系加载器 由 `c++` 实现，不继承于 `ClassLoader`
-2. 扩展类加载器 由 `java` 实现，加载 `JRE` 扩展目录
-3. 系统类加载器 负责在 `JVM` 启动时加载来自 `Java` 命令的`-classpath` 选项、`java.class.path` 系统属性，或者 `CLASSPATH` 换将变量所指定的 `JAR` 包和类路径
+1. 启动类加载器 由 `c++` 实现，不继承于 `ClassLoader`（`\lib`）
+2. 扩展类加载器 由 `java` 实现，加载 `JRE` 扩展目录（`\lib\ext`）
+3. 系统类加载器 负责在 `JVM` 启动时加载来自 `Java` 命令的`-classpath` 选项、`java.class.path` 系统属性，或者 `CLASSPATH` 换将变量所指定的 `JAR` 包和类路径（`getSystemClassLoader`）
 
 - 类加载过程
 
@@ -278,7 +325,8 @@
 
    就是当一个类加载器负责加载某个 Class 时，该 Class 所**依赖和引用其他 Class**也将由该类加载器负责载入，除非显示使用另外一个类加载器来载入
 
-2. 双亲委派模型——保证类的唯一性，避免类重复加载
+2. 双亲委派模型——保证类的唯一性，避免类重复加载，保证 Java 核心 API 库被篡改
+
 3. 缓存机制——所有加载过的 Class 都会被缓存
 
    > 这就是为什么在修改了 Class 后，必须重新启动 JVM，程序所做的修改才会生效的原因
@@ -367,6 +415,27 @@ Builder 和 build 对象
 #### 适配器模式 Adapter
 
 常见实例：`Java IO` 中 `InputStreamReader` 与 `InputStream`
+
+#### 代理模式 Proxy
+
+为目标对象提供一个代理对象，代理对象控制目标对象的引用，起到中介作用，保护目标对象，可以包装额外的工作方法
+
+> 一般来说，代理的都是接口类型
+
+- 静态代理
+- 动态代理
+
+  静态代理代码量多，每一个目标对象都要有代理对象，可采用动态代理解决
+
+  通过反射 invoke，调用动态代理类的对象方法，**在 Java 运行时实例化**
+
+  > 动态代理类由于需要继承 Proxy 类，只能针对接口创建代理类，且效率必然比静态代理低
+
+  使用方法：
+
+  1. 实现 `InvocationHandler` 接口，用于调用处理，复写 `invoke` 方法
+
+  2. `Proxy.newProxyInstance(classLoader,interfaces,invocationHandler)` 创建动态代理
 
 ### 哈希算法
 
@@ -607,6 +676,33 @@ IO 面向流、阻塞；NIO 面向缓冲区、通过线程和通道发送请求�
 2. 自动类型转换
 3. 泛型擦除与多态的冲突
 
+### 注解
+
+#### 应用
+
+  面向`编译器/APT` 使用，用于测试代码 Junit、简化使用（Retrofit、ButterKnife）
+
+#### 注解类型
+
+1. 元注解(Android 内置注解)
+
+   1. `@Retention` 保留注解，解释此注解的生命周期
+
+      分为`RUNTIME`(运行时)、`CLASS`(编译进行时)、`SOURCE`(源码阶段)
+
+   2. `@Documented` Javadoc 文档注解，略
+   3. `@Target` 目标注解，限定了注解的作用范围
+   4. `@Inherited` 继承注解，子类继承注解
+   5. `@Repeatable` 可重复注解
+
+2. Java 内置注解&自定义注解
+
+   1. `@Override` 复写
+   2. `@Deprecated` 废弃方法
+   3. `@SuppressWarnings` 忽略警告
+   4. `@SafeVarargs` 参数安全类型
+   5. `@FunctionalInterface` 函数式接口（lambda）
+
 ---
 
 ## Android
@@ -722,6 +818,12 @@ IO 面向流、阻塞；NIO 面向缓冲区、通过线程和通道发送请求�
 
 ### IPC 跨进程通信
 
+为什么？
+
+**性能方面**：Binder 的内存拷贝次数只有 1，通信效率高，传统 IPC 需要两次拷贝
+
+**安全性**：通过 Binder 对安卓进程中 uid 做隔离，权限验证
+
 #### 基础内容
 
 - 应用情景
@@ -768,11 +870,11 @@ IO 面向流、阻塞；NIO 面向缓冲区、通过线程和通道发送请求�
 
    对于 Server 进程，Binder 是本地对象，而对于 Client 进程，Binder 是指代理 Binder 对象
 
-   `ServiceManager`、`Binder Client`、`Binder Server` 与 `Binder驱动`
+   `ServerManager`(类似 DNS)、`Binder Client`(类似路由器)、`Binder Server` 与 `Binder驱动`
 
-   -> `Server` 向 `ServiceManager` 注册，生成方法映射表
+   -> `Server` 向 `ServerManager` 注册，生成方法映射表
 
-   -> `Client` 请求 `ServiceManager` 查找，由 `Binder驱动` 其返回一个 `Server Object` 的 `Proxy` 对象
+   -> `Client` 请求 `ServerManager` 查找，由 `Binder驱动` 其返回一个 `Server Object` 的 `Proxy` 对象
 
    -> `Client` 调用 `Proxy` 对象的方法，`Binder驱动` 回传给 `Server` 进行调用返回给 `Client`
 
@@ -1506,6 +1608,50 @@ Activity、Service、Application 三种
 
   -> `ClassName` 中判断是图片缓存过大还是其他问题
 
+#### 绘制优化
+
+1. 降低 onDraw 复杂度
+
+   不要在 onDraw 创建对象、减少耗时操作
+
+2. 避免过度绘制
+
+   移除默认的 Window 背景（`android:windowBackground=null`）
+
+   移除不必要背景，如果颜色相同
+
+   减少 View 层级，少用 wrap_content（增加计算量）
+
+   自定义控件 View 优化：在抽屉布局中使用 clipRect、quickReject
+
+3. `<include>`、`<merge>`、`<ViewStub>`
+
+   include 是复用 View，根 View 保留
+
+   merge 也是复用 View，根 View 移除
+
+   ViewStub 的懒加载模式，依旧类似 include
+
+#### 总结
+
+1. 启动速度——异步加载、分部加载、延期加载
+
+   - onCreate/onResume
+   - 减小主线程阻塞时间
+   - 布局 & 绘制优化
+   - AdapterView 复用
+   - 合理的刷新机制
+
+2. 显示速度——布局&绘制优化
+3. 响应速度——避免 ANR，多线程
+4. 稳定性——避免 OOM、ANR
+5. 资源节省（省电、内存、流量、安装包大小）
+
+   - 内存，避免内存抖动和泄漏、Bitmap 相关
+   - 安装包大小，混淆、资源优化、插件化
+   - 减少流量，多级缓存复用
+   - 电量，**_待写_**
+
 ### Android 设计框架
 
 #### MVC
@@ -1615,6 +1761,10 @@ Activity、Service、Application 三种
 
 - 覆盖索引 `O(logn)` 与 非覆盖索引 `O(2logn)`
 
+#### 文件
+
+用于存储简单的文本数据和二进制数据
+
 ### 动画
 
 #### 动画类型
@@ -1682,6 +1832,16 @@ Activity、Service、Application 三种
   主要用于非线性运动的动画效果
 
 - 估值器 `TypeEvaluator` 初始值到结束值的过渡逻辑，即**协同插值器**确定变化的具体值
+
+### APK 打包流程
+
+1. `R.java/resources.arsc` 资源索引文件
+2. `aidl`
+3. 项目源代码 class
+4. 转化 class 为 `classes.dex`
+5. 打包 APK
+6. Jarsigner 加签名
+7. APK 文件对齐处理
 
 ### 最新技术
 
@@ -1759,6 +1919,7 @@ Activity、Service、Application 三种
      -> 将此连接放入连接池
 
 5. `CallServerInterceptor` 发送和接收数据，责任链的最底端，U 型调用 `HttpCodec`
+
    `response.newBuilder().body(httpCodec.openResponseBody(response)).build()`
 
    > `openResponseBody(response)` 内部是通过 `Okio` 去请求网络获取数据的
